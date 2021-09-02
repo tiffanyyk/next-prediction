@@ -15,15 +15,15 @@
 
 
 # Download prepared data for the ActEv and ETH/UCY experiments
+NEXT_DATA_ROOT=/home/perception/ADMIN_UPLOAD/bp_data/next-data
+mkdir -p $NEXT_DATA_ROOT
 
-mkdir -p next-data
-
-wget https://next.cs.cmu.edu/data/final_annos.tgz -O next-data/final_annos.tgz
-wget https://next.cs.cmu.edu/data/person_features/actev_personboxfeat.tgz -O next-data/actev_personboxfeat.tgz
-wget https://next.cs.cmu.edu/data/person_features/ethucy_personboxfeat.tgz -O next-data/ethucy_personboxfeat.tgz
+wget https://next.cs.cmu.edu/data/final_annos.tgz -O $NEXT_DATA_ROOT/final_annos.tgz
+wget https://next.cs.cmu.edu/data/person_features/actev_personboxfeat.tgz -O $NEXT_DATA_ROOT/actev_personboxfeat.tgz
+wget https://next.cs.cmu.edu/data/person_features/ethucy_personboxfeat.tgz -O $NEXT_DATA_ROOT/ethucy_personboxfeat.tgz
 
 # extract and delete the tar files
-cd next-data
+cd $NEXT_DATA_ROOT
 
 tar -zxvf final_annos.tgz
 rm final_annos.tgz

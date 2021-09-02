@@ -25,7 +25,7 @@ download_*.sh for downloading annotations.
 
 
 import argparse
-#import cPickle as pickle
+# import cPickle as pickle
 import pickle
 import glob
 import json
@@ -87,6 +87,10 @@ parser.add_argument("--reverse_xy", action="store_true",
                     help="The trajectory file is in frameidx"
                          ", personidx, y, x.")
 
+# additional arguments for aUToronto server setup
+parser.add_argument("--data_root", default="",
+                    help="Absolute path to directory where next-data folder is stored")
+
 
 def main(args):
   # Compute the scene grid
@@ -118,12 +122,12 @@ def main(args):
   if args.traj_pixel_lst is not None:
     args.traj_pixel = {}
     delim = "\t"
-    with open(args.traj_pixel_lst, "r") as traj_pixel_lst:
+    with open(os.path.join(args.data_root, args.traj_pixel_lst), "r") as traj_pixel_lst:
       for pixel_file in traj_pixel_lst:
         pixel_file = pixel_file.strip()
         filename = os.path.splitext(os.path.basename(pixel_file))[0]
         args.traj_pixel[filename] = {}
-        for line in open(pixel_file):
+        for line in open(os.path.join(args.data_root, pixel_file)):
           fid, pid, x, y = line.strip().split(delim)
           p_key = "%d_%d" % (float(fid), float(pid))
           x = float(x)
@@ -140,8 +144,8 @@ def main(args):
   # For creating the same boxid as previous experiment
   args.person_boxkey2id = None
   if args.person_boxkey2id_p is not None:
-    with open(args.person_boxkey2id_p, "rb") as f:
-      args.person_boxkey2id = pickle.load(f)
+    with open(os.path.join(args.data_root, args.person_boxkey2id_p), "rb") as f:
+      args.person_boxkey2id = pickle.load(f, encoding="latin1")
 
   prepro_each(args.traj_path, "train", os.path.join(
       args.output_path, "data_train.npz"), args)
@@ -163,7 +167,7 @@ def prepro_each(traj_path, split, prepro_path, args):
   Returns:
     None
   """
-  traj_path = os.path.join(traj_path, split)
+  traj_path = os.path.join(args.data_root, traj_path, split)
 
   # traj_path each file is a video, with frameid, personid, x, y
   videos = glob.glob(os.path.join(traj_path, "*.txt"))
@@ -219,7 +223,7 @@ def prepro_each(traj_path, split, prepro_path, args):
 
   # load the classes that we used for scene segmantics
   if args.add_scene:
-    with open(args.scene_id2name, "r") as f:
+    with open(os.path.join(args.data_root, args.scene_id2name), "r") as f:
       scene_id2name = json.load(f)  # {"oldid2new":,"id2name":}
     scene_oldid2new = scene_id2name["oldid2new"]
     scene_oldid2new = {
@@ -247,17 +251,17 @@ def prepro_each(traj_path, split, prepro_path, args):
     scene_frameid2file = {}
     if args.add_kp:
       kp_file_path = os.path.join(args.kp_path, split, "%s.p" % videoname)
-      with open(kp_file_path, "rb") as f:
+      with open(os.path.join(args.data_root, kp_file_path), "rb") as f:
 
         if sys.version_info.major == 2:
           # this works for py2 since the pickle is generated with py2 code
-          kp_feats = pickle.load(f)
+          kp_feats = pickle.load(f, encoding="latin1")
         else:
           # ugly so it is py3 compatitable
-          kp_feats = pickle.load(f, encoding="bytes")
+          kp_feats = pickle.load(f, encoding="latin1")
           new_kp_feats = {}
           for k in kp_feats:
-            new_kp_feats[k.decode("utf-8")] = kp_feats[k]
+            new_kp_feats[k] = kp_feats[k]
           kp_feats = new_kp_feats
 
     if args.add_scene:
@@ -265,8 +269,8 @@ def prepro_each(traj_path, split, prepro_path, args):
       scene_file = os.path.join(args.scene_map_path, split, "%s.p" % videoname)
       if args.feature_no_split:
         scene_file = os.path.join(args.scene_map_path, "%s.p" % videoname)
-      with open(scene_file, "rb") as f:
-        scene_frameid2file = pickle.load(f)
+      with open(os.path.join(args.data_root, scene_file), "rb") as f:
+        scene_frameid2file = pickle.load(f, encoding="latin1")
       for frameid in scene_frameid2file:
         scene_frameid2file[frameid] = os.path.join(
             args.scene_feat_path, scene_frameid2file[frameid])
@@ -276,27 +280,27 @@ def prepro_each(traj_path, split, prepro_path, args):
           args.person_box_path, split, "%s.p" % videoname)
       if args.feature_no_split:
         person_box_path = os.path.join(
-            args.person_box_path, "%s.p" % videoname)
-      with open(person_box_path, "rb") as f:
-        person_boxes = pickle.load(f)
+          args.person_box_path, "%s.p" % videoname)
+      with open(os.path.join(args.data_root, person_box_path), "rb") as f:
+        person_boxes = pickle.load(f, encoding="latin1")
 
     if args.add_other_box:
       other_box_path = os.path.join(
           args.other_box_path, split, "%s.p" % videoname)
       if args.feature_no_split:
         other_box_path = os.path.join(args.other_box_path, "%s.p" % videoname)
-      with open(other_box_path, "rb") as f:
-        other_boxes = pickle.load(f)
+      with open(os.path.join(args.data_root, other_box_path), "rb") as f:
+        other_boxes = pickle.load(f, encoding="latin1")
 
     if args.add_activity:
       activity_path = os.path.join(
           args.activity_path, split, "%s.p" % videoname)
-      with open(activity_path, "rb") as f:
-        activities = pickle.load(f)
+      with open(os.path.join(args.data_root, activity_path), "rb") as f:
+        activities = pickle.load(f, encoding="latin1")
 
     # [N,4], [frame_idx, person_id,x,y]
     data = []
-    with open(video, "r") as traj_file:
+    with open(os.path.join(args.data_root, video), "r") as traj_file:
       for line in traj_file:
         if args.reverse_xy:
           fidx, pid, y, x = line.strip().split(delim)
@@ -377,7 +381,7 @@ def prepro_each(traj_path, split, prepro_path, args):
             feati = len(scene_feat_dict.keys())
             # get the feature new i
             # (H,W)
-            scene_feat_dict[key] = np.load(key)
+            scene_feat_dict[key] = np.load(os.path.join(args.data_root, key))
             scene_key2feati[key] = feati
 
           else:

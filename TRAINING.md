@@ -29,6 +29,7 @@ The following is for ActEv experiments.
 ```
 python code/preprocess.py next-data/final_annos/actev_annos/virat_2.5fps_resized_allfeature/ \
   actev_preprocess --obs_len 8 --pred_len 12 --add_kp \
+  --data_root /home/perception/Datasets/bp_data/ \
   --kp_path next-data/final_annos/actev_annos/anno_kp/ --add_scene \
   --scene_feat_path next-data/final_annos/actev_annos/ade20k_out_36_64/ \
   --scene_map_path next-data/final_annos/actev_annos/anno_scene/ \
@@ -46,7 +47,7 @@ You can train your model by running:
 ```
 python code/train.py actev_preprocess next-models/actev_single_model model \
   --runId 2 --is_actev --add_kp --add_activity \
-  --person_feat_path next-data/actev_personboxfeat --multi_decoder
+  --person_feat_path /home/perception/Datasets/bp_data/next-data/actev_personboxfeat --multi_decoder
 ```
 By default this will train a model for ActEv dataset, periodically saving model
 files to `next-models/actev_single_model/model/02/save` at the current working
@@ -82,7 +83,7 @@ You can use following command to test the newly trained model:
 ```
 python code/test.py actev_preprocess next-models/actev_single_model model \
   --runId 2 --load_best --is_actev --add_kp --add_activity \
-  --person_feat_path next-data/actev_personboxfeat --multi_decoder
+  --person_feat_path /home/perception/Datasets/bp_data/next-data/actev_personboxfeat --multi_decoder
 ```
 The best model on the validation set will be used.
 
@@ -95,6 +96,7 @@ preprocess the data once for each scene.
 for dataset in {eth,hotel,univ,zara1,zara2};
   do
     python code/preprocess.py next-data/final_annos/ucyeth_annos/original_trajs/${dataset}/ ethucy_exp/preprocess_${dataset} \
+    --data_root /home/perception/Datasets/bp_data/ \
     --person_boxkey2id next-data/final_annos/ucyeth_annos/${dataset}_person_boxkey2id.p \
     --obs_len 8 --pred_len 12 --min_ped 1 --add_scene \
     --scene_feat_path next-data/final_annos/ucyeth_annos/ade20k_e10_51_64/ \
@@ -111,12 +113,12 @@ for dataset in {eth,hotel,univ,zara1,zara2};
 As an example, you can train your model on ZARA1 by running:
 ```
 python code/train.py ethucy_exp/preprocess_zara1/ next-model/ethucy_single_model/zara1/ model --runId 2  \
---scene_h 51 --scene_w 64 --person_feat_path next-data/ethucy_personboxfeat/zara1/
+--scene_h 51 --scene_w 64 --person_feat_path /home/perception/Datasets/bp_data/next-data/ethucy_personboxfeat/zara1/
 ```
 Please refer to the code/paper for more training options.
 
 Similar for testing:
 ```
 python code/test.py ethucy_exp/preprocess_zara1/ next-model/ethucy_single_model/zara1/ model --runId 2  \
---scene_h 51 --scene_w 64 --person_feat_path next-data/ethucy_personboxfeat/zara1/
+--scene_h 51 --scene_w 64 --person_feat_path /home/perception/Datasets/bp_data/next-data/ethucy_personboxfeat/zara1/
 ```

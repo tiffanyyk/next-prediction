@@ -26,6 +26,7 @@ The following is for ActEv experiments.
 ```
 python code/preprocess.py next-data/final_annos/actev_annos/virat_2.5fps_resized_allfeature/ \
   actev_preprocess --obs_len 8 --pred_len 12 --add_kp --kp_path next-data/final_annos/actev_annos/anno_kp/ \
+  --data_root /home/perception/Datasets/bp_data/ \
   --add_scene --scene_feat_path next-data/final_annos/actev_annos/ade20k_out_36_64/ \
   --scene_map_path next-data/final_annos/actev_annos/anno_scene/ \
   --scene_id2name next-data/final_annos/actev_annos/scene36_64_id2name_top10.json \
@@ -67,6 +68,7 @@ preprocess the data once for each scene.
 for dataset in {eth,hotel,univ,zara1,zara2};
   do
     python code/preprocess.py next-data/final_annos/ucyeth_annos/original_trajs/${dataset}/ ethucy_exp/preprocess_${dataset} \
+    --data_root /home/perception/Datasets/bp_data/ \
     --person_boxkey2id next-data/final_annos/ucyeth_annos/${dataset}_person_boxkey2id.p \
     --obs_len 8 --pred_len 12 --min_ped 1 --add_scene \
     --scene_feat_path next-data/final_annos/ucyeth_annos/ade20k_e10_51_64/ \

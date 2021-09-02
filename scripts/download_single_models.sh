@@ -15,14 +15,14 @@
 
 
 # Download single models for the ActEv and ETH/UCY experiments
+NEXT_MODELS_ROOT=/home/perception/ADMIN_UPLOAD/bp_data/next-models
+mkdir -p $NEXT_MODELS_ROOT
 
-mkdir -p next-models
-
-wget https://next.cs.cmu.edu/data/pretrained_models/actev_single_model.tar -O next-models/actev_single_model.tar
-wget https://next.cs.cmu.edu/data/pretrained_models/ethucy_single_model.tar -O next-models/ethucy_single_model.tar
+wget https://next.cs.cmu.edu/data/pretrained_models/actev_single_model.tar -O $NEXT_MODELS_ROOT/actev_single_model.tar
+wget https://next.cs.cmu.edu/data/pretrained_models/ethucy_single_model.tar -O $NEXT_MODELS_ROOT/ethucy_single_model.tar
 
 # extract and delete the tar files
-cd next-models
+cd $NEXT_MODELS_ROOT
 tar -xvf actev_single_model.tar
 rm actev_single_model.tar
 tar -xvf ethucy_single_model.tar
