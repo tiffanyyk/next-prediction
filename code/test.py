@@ -24,6 +24,7 @@ See README for running instructions.
 import argparse
 import tensorflow as tf
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # the following will still have colocation debug info
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -31,7 +32,6 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import models
 
 import utils
-
 
 parser = argparse.ArgumentParser()
 
@@ -133,42 +133,42 @@ parser.add_argument("--emb_lr", type=float, default=1.0,
 
 
 def main(args):
-  """Run testing."""
-  test_data = utils.read_data(args, "test")
-  print("total test samples:%s" % test_data.num_examples)
+    """Run testing."""
+    test_data = utils.read_data(args, "test")
+    print("total test samples:%s" % test_data.num_examples)
 
-  if args.random_other:
-    print("warning, testing mode with 'random_other' will result in "
-          "different results every run...")
+    if args.random_other:
+        print("warning, testing mode with 'random_other' will result in "
+              "different results every run...")
 
-  model = models.get_model(args, gpuid=args.gpuid)
-  tfconfig = tf.ConfigProto(allow_soft_placement=True)
-  tfconfig.gpu_options.allow_growth = True
-  tfconfig.gpu_options.visible_device_list = "%s" % (
-      ",".join(["%s" % i for i in [args.gpuid]]))
+    model = models.get_model(args, gpuid=args.gpuid)
+    tfconfig = tf.ConfigProto(allow_soft_placement=True)
+    tfconfig.gpu_options.allow_growth = True
+    tfconfig.gpu_options.visible_device_list = "%s" % (
+        ",".join(["%s" % i for i in [args.gpuid]]))
 
-  with tf.Session(config=tfconfig) as sess:
-    utils.initialize(load=True, load_best=args.load_best,
-                     args=args, sess=sess)
+    with tf.Session(config=tfconfig) as sess:
+        utils.initialize(load=True, load_best=args.load_best,
+                         args=args, sess=sess)
 
-    # load the graph and variables
-    tester = models.Tester(model, args, sess)
+        # load the graph and variables
+        tester = models.Tester(model, args, sess)
 
-    perf = utils.evaluate(test_data, args, sess, tester)
+        perf = utils.evaluate(test_data, args, sess, tester)
 
-  print("performance:")
-  numbers = []
-  for k in sorted(perf.keys()):
-    print("%s, %s" % (k, perf[k]))
-    numbers.append("%s" % perf[k])
-  print(" ".join(sorted(perf.keys())))
-  print(" ".join(numbers))
+    print("performance:")
+    numbers = []
+    for k in sorted(perf.keys()):
+        print("%s, %s" % (k, perf[k]))
+        numbers.append("%s" % perf[k])
+    print(" ".join(sorted(perf.keys())))
+    print(" ".join(numbers))
 
 
 if __name__ == "__main__":
-  arguments = parser.parse_args()
-  arguments.is_train = False
-  arguments.is_test = True
-  arguments = utils.process_args(arguments)
+    arguments = parser.parse_args()
+    arguments.is_train = False
+    arguments.is_test = True
+    arguments = utils.process_args(arguments)
 
-  main(arguments)
+    main(arguments)
