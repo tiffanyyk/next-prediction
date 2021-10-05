@@ -17,19 +17,15 @@ from __future__ import division
 from __future__ import print_function
 
 """Preprocess annotations for training and testing.
-
-
 See README for running instructions and
 download_*.sh for downloading annotations.
 """
 
 import argparse
-# import cPickle as pickle
-import pickle
+import cPickle as pickle
 import glob
 import json
 import os
-import sys
 import numpy as np
 from tqdm import tqdm
 
@@ -56,7 +52,7 @@ parser.add_argument("--person_boxkey2id_p", default=None,
                     help="For reproducing experiments,"
                          " need person_boxkey2id from previous"
                          " preprocessed files to get the same "
-                         "box id so you can you the saved person feature.")
+                         "box id so you can use the saved person feature.")
 
 parser.add_argument("--add_other_box", action="store_true")
 parser.add_argument("--other_box_path", default=None)
@@ -86,10 +82,6 @@ parser.add_argument("--reverse_xy", action="store_true",
                     help="The trajectory file is in frameidx"
                          ", personidx, y, x.")
 
-# additional arguments for aUToronto server setup
-parser.add_argument("--data_root", default="",
-                    help="Absolute path to directory where next-data folder is stored")
-
 
 def main(args):
     # Compute the scene grid
@@ -109,8 +101,8 @@ def main(args):
         args.scene_grid_centers = []
         for h, w in args.scene_grids:
             h_gap, w_gap = args.video_h * 1.0 / h, args.video_w * 1.0 / w
-            centers_x = np.cumsum([w_gap for _ in range(w)]) - w_gap / 2.0
-            centers_y = np.cumsum([h_gap for _ in range(h)]) - h_gap / 2.0
+            centers_x = np.cumsum([w_gap for _ in xrange(w)]) - w_gap / 2.0
+            centers_y = np.cumsum([h_gap for _ in xrange(h)]) - h_gap / 2.0
             centers_xx = np.tile(np.expand_dims(centers_x, axis=0), [h, 1])
             centers_yy = np.tile(np.expand_dims(centers_y, axis=1), [1, w])
             centers = np.stack((centers_xx, centers_yy), axis=-1)  # [H,W,2]
@@ -121,12 +113,12 @@ def main(args):
     if args.traj_pixel_lst is not None:
         args.traj_pixel = {}
         delim = "\t"
-        with open(os.path.join(args.data_root, args.traj_pixel_lst), "r") as traj_pixel_lst:
+        with open(args.traj_pixel_lst, "r") as traj_pixel_lst:
             for pixel_file in traj_pixel_lst:
                 pixel_file = pixel_file.strip()
                 filename = os.path.splitext(os.path.basename(pixel_file))[0]
                 args.traj_pixel[filename] = {}
-                for line in open(os.path.join(args.data_root, pixel_file)):
+                for line in open(pixel_file):
                     fid, pid, x, y = line.strip().split(delim)
                     p_key = "%d_%d" % (float(fid), float(pid))
                     x = float(x)
@@ -143,8 +135,8 @@ def main(args):
     # For creating the same boxid as previous experiment
     args.person_boxkey2id = None
     if args.person_boxkey2id_p is not None:
-        with open(os.path.join(args.data_root, args.person_boxkey2id_p), "rb") as f:
-            args.person_boxkey2id = pickle.load(f, encoding="latin1")
+        with open(args.person_boxkey2id_p, "r") as f:
+            args.person_boxkey2id = pickle.load(f)
 
     prepro_each(args.traj_path, "train", os.path.join(
         args.output_path, "data_train.npz"), args)
@@ -156,17 +148,15 @@ def main(args):
 
 def prepro_each(traj_path, split, prepro_path, args):
     """Preprocess each data split into one npz file.
-
     Args:
       traj_path: path to the trajectory annotation files
       split: train/val/test
       prepro_path: path to the output npz file
       args: arguments
-
     Returns:
       None
     """
-    traj_path = os.path.join(args.data_root, traj_path, split)
+    traj_path = os.path.join(traj_path, split)
 
     # traj_path each file is a video, with frameid, personid, x, y
     videos = glob.glob(os.path.join(traj_path, "*.txt"))
@@ -222,14 +212,13 @@ def prepro_each(traj_path, split, prepro_path, args):
 
     # load the classes that we used for scene segmantics
     if args.add_scene:
-        with open(os.path.join(args.data_root, args.scene_id2name), "r") as f:
+        with open(args.scene_id2name, "r") as f:
             scene_id2name = json.load(f)  # {"oldid2new":,"id2name":}
         scene_oldid2new = scene_id2name["oldid2new"]
         scene_oldid2new = {
             int(oldi): scene_oldid2new[oldi] for oldi in scene_oldid2new}
         # for background class or other class that we ignored
-        # assert not scene_oldid2new.has_key(0)
-        assert 0 not in scene_oldid2new
+        assert not scene_oldid2new.has_key(0)
         scene_oldid2new[0] = 0
         total_scene_class = len(scene_oldid2new)
         scene_id2name = scene_id2name["id2name"]
@@ -250,26 +239,16 @@ def prepro_each(traj_path, split, prepro_path, args):
         scene_frameid2file = {}
         if args.add_kp:
             kp_file_path = os.path.join(args.kp_path, split, "%s.p" % videoname)
-            with open(os.path.join(args.data_root, kp_file_path), "rb") as f:
-
-                if sys.version_info.major == 2:
-                    # this works for py2 since the pickle is generated with py2 code
-                    kp_feats = pickle.load(f, encoding="latin1")
-                else:
-                    # ugly so it is py3 compatitable
-                    kp_feats = pickle.load(f, encoding="latin1")
-                    new_kp_feats = {}
-                    for k in kp_feats:
-                        new_kp_feats[k] = kp_feats[k]
-                    kp_feats = new_kp_feats
+            with open(kp_file_path, "rb") as f:
+                kp_feats = pickle.load(f)
 
         if args.add_scene:
             # get the frameid to file name since scene is not extracted every frames
             scene_file = os.path.join(args.scene_map_path, split, "%s.p" % videoname)
             if args.feature_no_split:
                 scene_file = os.path.join(args.scene_map_path, "%s.p" % videoname)
-            with open(os.path.join(args.data_root, scene_file), "rb") as f:
-                scene_frameid2file = pickle.load(f, encoding="latin1")
+            with open(scene_file, "rb") as f:
+                scene_frameid2file = pickle.load(f)
             for frameid in scene_frameid2file:
                 scene_frameid2file[frameid] = os.path.join(
                     args.scene_feat_path, scene_frameid2file[frameid])
@@ -280,26 +259,26 @@ def prepro_each(traj_path, split, prepro_path, args):
             if args.feature_no_split:
                 person_box_path = os.path.join(
                     args.person_box_path, "%s.p" % videoname)
-            with open(os.path.join(args.data_root, person_box_path), "rb") as f:
-                person_boxes = pickle.load(f, encoding="latin1")
+            with open(person_box_path, "rb") as f:
+                person_boxes = pickle.load(f)
 
         if args.add_other_box:
             other_box_path = os.path.join(
                 args.other_box_path, split, "%s.p" % videoname)
             if args.feature_no_split:
                 other_box_path = os.path.join(args.other_box_path, "%s.p" % videoname)
-            with open(os.path.join(args.data_root, other_box_path), "rb") as f:
-                other_boxes = pickle.load(f, encoding="latin1")
+            with open(other_box_path, "rb") as f:
+                other_boxes = pickle.load(f)
 
         if args.add_activity:
             activity_path = os.path.join(
                 args.activity_path, split, "%s.p" % videoname)
-            with open(os.path.join(args.data_root, activity_path), "rb") as f:
-                activities = pickle.load(f, encoding="latin1")
+            with open(activity_path, "rb") as f:
+                activities = pickle.load(f)
 
         # [N,4], [frame_idx, person_id,x,y]
         data = []
-        with open(os.path.join(args.data_root, video), "r") as traj_file:
+        with open(video, "r") as traj_file:
             for line in traj_file:
                 if args.reverse_xy:
                     fidx, pid, y, x = line.strip().split(delim)
@@ -380,7 +359,7 @@ def prepro_each(traj_path, split, prepro_path, args):
                         feati = len(scene_feat_dict.keys())
                         # get the feature new i
                         # (H,W)
-                        scene_feat_dict[key] = np.load(os.path.join(args.data_root, key))
+                        scene_feat_dict[key] = np.load(key)
                         scene_key2feati[key] = feati
 
                     else:
@@ -467,6 +446,24 @@ def prepro_each(traj_path, split, prepro_path, args):
                     # get the kp feature from starting frame to seq_len frame
                     for i, frame_idx in enumerate(frame_idxs):
                         key = "%d_%d" % (frame_idx, person_id)
+                        if key not in kp_feats:
+                            print("Warning - Keypoint Feature: %s %s not exists" % (
+                                videoname, key))
+                            # fallback, copy the keypoint from last frame or future
+                            fallback_frame_idxs = range(int(frame_idx) - 30,
+                                                        int(frame_idx))[::-1]
+                            got_fallback = False
+                            for fallback_frame_idx in fallback_frame_idxs:
+                                new_key = "%d_%d" % (fallback_frame_idx, person_id)
+                                if new_key in kp_feats:
+                                    kp_feat[count_person, i, :, :] = kp_feats[new_key][:, :2]
+                                    got_fallback = True
+                                    break
+                            # we will leave the keypoint to zeros?
+                            if not got_fallback:
+                                print("Warning - Keypoint Feature: %s %s uses zeros" % (
+                                    videoname, key))
+                            continue
                         # ignore the kp logits
                         kp_feat[count_person, i, :, :] = kp_feats[key][:, :2]
 
@@ -479,13 +476,31 @@ def prepro_each(traj_path, split, prepro_path, args):
                         person_box[count_person, i, :] = person_boxes[key]
 
                         # save this person key to an id
-                        key = "%s_%s" % (videoname, key)
+                        key = "%s_%d_%d" % (videoname, frame_idx, person_id)
 
                         if key not in person_boxkey2id:
                             if args.person_boxkey2id is not None:
                                 # use the boxid from previous preprocessed files
                                 # to reproduce experiments
-                                prev_boxid = args.person_boxkey2id[split][key]
+                                if key not in args.person_boxkey2id[split]:
+                                    print("Warning - Appearance Feature: %s %s not exists" % (
+                                        videoname, key))
+                                    # fallback, copy the appearance from last frame or future
+                                    fallback_frame_idxs = range(int(frame_idx) - 30,
+                                                                int(frame_idx))[::-1]
+                                    got_fallback = False
+                                    new_key = None
+                                    for fallback_frame_idx in fallback_frame_idxs:
+                                        new_key = "%s_%d_%d" % (videoname, fallback_frame_idx,
+                                                                person_id)
+                                        if new_key in args.person_boxkey2id[split]:
+                                            got_fallback = True
+                                            break
+                                    assert (new_key is not None) and got_fallback
+
+                                    prev_boxid = args.person_boxkey2id[split][new_key]
+                                else:
+                                    prev_boxid = args.person_boxkey2id[split][key]
                                 person_boxkey2id[key] = prev_boxid
                                 person_boxid2key[prev_boxid] = key
                             else:
@@ -705,7 +720,7 @@ def prepro_each(traj_path, split, prepro_path, args):
 
         traj_cat = np.zeros((len(cur_activity)), dtype="uint8")
         count_move = 0
-        for i in range(len(cur_activity)):
+        for i in xrange(len(cur_activity)):
             cur_acts = cur_activity[i]
             move = False
             for actid in cur_acts:
@@ -766,11 +781,10 @@ def prepro_each(traj_path, split, prepro_path, args):
             scene_feat = scene_feat_dict[key]  # [H,W]
             # transform classid first
             new_scene_feat = np.zeros_like(scene_feat)  # zero for background class
-            for i in range(scene_h):
-                for j in range(scene_w):
+            for i in xrange(scene_h):
+                for j in xrange(scene_w):
                     # rest is ignored and all put into background
-                    # if scene_oldid2new.has_key(scene_feat[i, j]):
-                    if scene_feat[i, j] in scene_oldid2new:
+                    if scene_oldid2new.has_key(scene_feat[i, j]):
                         new_scene_feat[i, j] = scene_oldid2new[scene_feat[i, j]]
             # transform to masks
             this_scene_feat = np.zeros(
@@ -798,17 +812,13 @@ def prepro_each(traj_path, split, prepro_path, args):
 
 def filter_future_act(acts, future_frame):
     """Get future activity ids.
-
     future activity from the data is all the future activity,
     here we filter only the activity in pred_len,
     also add the current activity that is still not finished
-
-
     Args:
       acts: a tuple of (current_actid_list, current_dist_list,
           future_actid_list, future_dist_list)
       future_frame: how many frame until the future
-
     Returns:
       future activity ids
     """
